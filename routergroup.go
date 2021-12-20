@@ -43,6 +43,16 @@ type IRoutes interface {
 	OPTIONS(string, ...HandlerFunc) IRoutes
 	HEAD(string, ...HandlerFunc) IRoutes
 
+	//mdw扩展属性
+	MyAny(string, interface{}, ...HandlerFunc) IRoutes
+	MyGET(string, interface{}, ...HandlerFunc) IRoutes
+	MyPOST(string, interface{}, ...HandlerFunc) IRoutes
+	MyDELETE(string, interface{}, ...HandlerFunc) IRoutes
+	MyPATCH(string, interface{}, ...HandlerFunc) IRoutes
+	MyPUT(string, interface{}, ...HandlerFunc) IRoutes
+	MyOPTIONS(string, interface{}, ...HandlerFunc) IRoutes
+	MyHEAD(string, interface{}, ...HandlerFunc) IRoutes
+
 	StaticFile(string, string) IRoutes
 	Static(string, string) IRoutes
 	StaticFS(string, http.FileSystem) IRoutes
@@ -81,10 +91,11 @@ func (group *RouterGroup) BasePath() string {
 	return group.basePath
 }
 
-func (group *RouterGroup) handle(httpMethod, relativePath string, handlers HandlersChain) IRoutes {
+//mdw扩展属性
+func (group *RouterGroup) handle(httpMethod, relativePath string, ext interface{}, handlers HandlersChain) IRoutes {
 	absolutePath := group.calculateAbsolutePath(relativePath)
 	handlers = group.combineHandlers(handlers)
-	group.engine.addRoute(httpMethod, absolutePath, handlers)
+	group.engine.addRoute(httpMethod, absolutePath, ext, handlers) //mdw扩展属性
 	return group.returnObj()
 }
 
@@ -102,49 +113,94 @@ func (group *RouterGroup) Handle(httpMethod, relativePath string, handlers ...Ha
 	if matched := regEnLetter.MatchString(httpMethod); !matched {
 		panic("http method " + httpMethod + " is not valid")
 	}
-	return group.handle(httpMethod, relativePath, handlers)
+	return group.handle(httpMethod, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // POST is a shortcut for router.Handle("POST", path, handle).
 func (group *RouterGroup) POST(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodPost, relativePath, handlers)
+	return group.handle(http.MethodPost, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // GET is a shortcut for router.Handle("GET", path, handle).
 func (group *RouterGroup) GET(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodGet, relativePath, handlers)
+	return group.handle(http.MethodGet, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // DELETE is a shortcut for router.Handle("DELETE", path, handle).
 func (group *RouterGroup) DELETE(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodDelete, relativePath, handlers)
+	return group.handle(http.MethodDelete, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // PATCH is a shortcut for router.Handle("PATCH", path, handle).
 func (group *RouterGroup) PATCH(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodPatch, relativePath, handlers)
+	return group.handle(http.MethodPatch, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // PUT is a shortcut for router.Handle("PUT", path, handle).
 func (group *RouterGroup) PUT(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodPut, relativePath, handlers)
+	return group.handle(http.MethodPut, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // OPTIONS is a shortcut for router.Handle("OPTIONS", path, handle).
 func (group *RouterGroup) OPTIONS(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodOptions, relativePath, handlers)
+	return group.handle(http.MethodOptions, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // HEAD is a shortcut for router.Handle("HEAD", path, handle).
 func (group *RouterGroup) HEAD(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(http.MethodHead, relativePath, handlers)
+	return group.handle(http.MethodHead, relativePath, nil, handlers) //mdw扩展属性
 }
 
 // Any registers a route that matches all the HTTP methods.
 // GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE, CONNECT, TRACE.
 func (group *RouterGroup) Any(relativePath string, handlers ...HandlerFunc) IRoutes {
 	for _, method := range anyMethods {
-		group.handle(method, relativePath, handlers)
+		group.handle(method, relativePath, nil, handlers) //mdw扩展属性
+	}
+
+	return group.returnObj()
+}
+
+// MyPOST is a shortcut for router.Handle("POST", path, handle).
+func (group *RouterGroup) MyPOST(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodPost, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyGET is a shortcut for router.Handle("GET", path, handle).
+func (group *RouterGroup) MyGET(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodGet, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyDELETE is a shortcut for router.Handle("DELETE", path, handle).
+func (group *RouterGroup) MyDELETE(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodDelete, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyPATCH is a shortcut for router.Handle("PATCH", path, handle).
+func (group *RouterGroup) MyPATCH(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodPatch, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyPUT is a shortcut for router.Handle("PUT", path, handle).
+func (group *RouterGroup) MyPUT(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodPut, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyOPTIONS is a shortcut for router.Handle("OPTIONS", path, handle).
+func (group *RouterGroup) MyOPTIONS(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodOptions, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyHEAD is a shortcut for router.Handle("HEAD", path, handle).
+func (group *RouterGroup) MyHEAD(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	return group.handle(http.MethodHead, relativePath, ext, handlers) //mdw扩展属性
+}
+
+// MyAny registers a route that matches all the HTTP methods.
+// GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE, CONNECT, TRACE.
+func (group *RouterGroup) MyAny(relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	for _, method := range anyMethods {
+		group.handle(method, relativePath, ext, handlers) //mdw扩展属性
 	}
 
 	return group.returnObj()

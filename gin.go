@@ -297,7 +297,8 @@ func (engine *Engine) rebuild405Handlers() {
 	engine.allNoMethod = engine.combineHandlers(engine.noMethod)
 }
 
-func (engine *Engine) addRoute(method, path string, handlers HandlersChain) {
+//mdw扩展属性
+func (engine *Engine) addRoute(method, path string, ext interface{}, handlers HandlersChain) {
 	assert1(path[0] == '/', "path must begin with '/'")
 	assert1(method != "", "HTTP method can not be empty")
 	assert1(len(handlers) > 0, "there must be at least one handler")
@@ -310,7 +311,7 @@ func (engine *Engine) addRoute(method, path string, handlers HandlersChain) {
 		root.fullPath = "/"
 		engine.trees = append(engine.trees, methodTree{method: method, root: root})
 	}
-	root.addRoute(path, handlers)
+	root.addRoute(path, ext, handlers)
 
 	// Update maxParams
 	if paramsCount := countParams(path); paramsCount > engine.maxParams {
@@ -595,6 +596,7 @@ func (engine *Engine) handleHTTPRequest(c *Context) {
 		if value.handlers != nil {
 			c.handlers = value.handlers
 			c.fullPath = value.fullPath
+			c.ext = value.ext //mdw扩展属性
 			c.Next()
 			c.writermem.WriteHeaderNow()
 			return

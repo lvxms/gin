@@ -121,6 +121,8 @@ type node struct {
 	children  []*node // child nodes, at most 1 :param style node at the end of the array
 	handlers  HandlersChain
 	fullPath  string
+
+	ext interface{} //mdw扩展属性
 }
 
 // Increments priority of the given child and reorders if necessary
@@ -148,13 +150,13 @@ func (n *node) incrementChildPrio(pos int) int {
 
 // addRoute adds a node with the given handle to the path.
 // Not concurrency-safe!
-func (n *node) addRoute(path string, handlers HandlersChain) {
+func (n *node) addRoute(path string, ext interface{}, handlers HandlersChain) {
 	fullPath := path
 	n.priority++
 
 	// Empty tree
 	if len(n.path) == 0 && len(n.children) == 0 {
-		n.insertChild(path, fullPath, handlers)
+		n.insertChild(path, fullPath, ext, handlers) //mdw扩展属性
 		n.nType = root
 		return
 	}
@@ -249,7 +251,7 @@ walk:
 					"'")
 			}
 
-			n.insertChild(path, fullPath, handlers)
+			n.insertChild(path, fullPath, ext, handlers) //mdw扩展属性
 			return
 		}
 
@@ -288,7 +290,8 @@ func findWildcard(path string) (wildcard string, i int, valid bool) {
 	return "", -1, false
 }
 
-func (n *node) insertChild(path string, fullPath string, handlers HandlersChain) {
+//mdw扩展属性
+func (n *node) insertChild(path string, fullPath string, ext interface{}, handlers HandlersChain) {
 	for {
 		// Find prefix until first wildcard
 		wildcard, i, valid := findWildcard(path)
@@ -340,6 +343,7 @@ func (n *node) insertChild(path string, fullPath string, handlers HandlersChain)
 
 			// Otherwise we're done. Insert the handle in the new leaf
 			n.handlers = handlers
+			n.ext = ext //mdw扩展属性
 			return
 		}
 
@@ -394,6 +398,7 @@ func (n *node) insertChild(path string, fullPath string, handlers HandlersChain)
 	n.path = path
 	n.handlers = handlers
 	n.fullPath = fullPath
+	n.ext = ext //mdw扩展属性
 }
 
 // nodeValue holds return values of (*Node).getValue method
@@ -402,6 +407,7 @@ type nodeValue struct {
 	params   *Params
 	tsr      bool
 	fullPath string
+	ext      interface{} //mdw扩展属性
 }
 
 type skippedNode struct {
@@ -593,6 +599,7 @@ walk: // Outer loop for walking the tree
 			// Check if this node has a handle registered.
 			if value.handlers = n.handlers; value.handlers != nil {
 				value.fullPath = n.fullPath
+				value.ext = n.ext //mdw扩展属性
 				return
 			}
 

@@ -81,6 +81,7 @@ type Context struct {
 	// SameSite allows a server to define a cookie attribute making it impossible for
 	// the browser to send this cookie along with cross-site requests.
 	sameSite http.SameSite
+	ext      interface{} //mdw扩展属性
 }
 
 /************************************/
@@ -101,6 +102,17 @@ func (c *Context) reset() {
 	c.formCache = nil
 	*c.params = (*c.params)[:0]
 	*c.skippedNodes = (*c.skippedNodes)[:0]
+
+	c.ext = nil //mdw扩展属性
+}
+
+//mdw扩展属性
+func (c *Context) GetExt() (interface{}, bool) {
+	if c.ext == nil {
+		return nil, false
+	} else {
+		return c.ext, true
+	}
 }
 
 // Copy returns a copy of the current context that can be safely used outside the request's scope.
@@ -111,6 +123,7 @@ func (c *Context) Copy() *Context {
 		Request:   c.Request,
 		Params:    c.Params,
 		engine:    c.engine,
+		ext:       c.ext, //mdw扩展属性
 	}
 	cp.writermem.ResponseWriter = nil
 	cp.Writer = &cp.writermem

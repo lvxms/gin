@@ -44,6 +44,7 @@ type IRoutes interface {
 	HEAD(string, ...HandlerFunc) IRoutes
 
 	//mdw扩展属性
+	MyHandle(string, string, interface{}, ...HandlerFunc) IRoutes
 	MyAny(string, interface{}, ...HandlerFunc) IRoutes
 	MyGET(string, interface{}, ...HandlerFunc) IRoutes
 	MyPOST(string, interface{}, ...HandlerFunc) IRoutes
@@ -159,6 +160,14 @@ func (group *RouterGroup) Any(relativePath string, handlers ...HandlerFunc) IRou
 	}
 
 	return group.returnObj()
+}
+
+//mdw扩展属性
+func (group *RouterGroup) MyHandle(httpMethod, relativePath string, ext interface{}, handlers ...HandlerFunc) IRoutes {
+	if matched := regEnLetter.MatchString(httpMethod); !matched {
+		panic("http method " + httpMethod + " is not valid")
+	}
+	return group.handle(httpMethod, relativePath, ext, handlers) //mdw扩展属性
 }
 
 // MyPOST is a shortcut for router.Handle("POST", path, handle).

@@ -839,7 +839,7 @@ func TestContextRenderHTML2(t *testing.T) {
 	c, router := CreateTestContext(w)
 
 	// print debug warning log when Engine.trees > 0
-	router.addRoute("GET", "/", HandlersChain{func(_ *Context) {}})
+	router.addRoute("GET", "/", nil, HandlersChain{func(_ *Context) {}})
 	assert.Len(t, router.trees, 1)
 
 	templ := template.Must(template.New("t").Parse(`Hello {{.name}}`))

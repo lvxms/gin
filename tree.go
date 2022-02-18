@@ -180,6 +180,7 @@ walk:
 				handlers:  n.handlers,
 				priority:  n.priority - 1,
 				fullPath:  n.fullPath,
+				ext:       n.ext, //mdw扩展属性 2022.02.18 17:17
 			}
 
 			n.children = []*node{&child}
@@ -189,6 +190,7 @@ walk:
 			n.handlers = nil
 			n.wildChild = false
 			n.fullPath = fullPath[:parentFullPathIndex+i]
+			n.ext = nil //mdw扩展属性 2022.02.18 17:17
 		}
 
 		// Make new node a child of this node

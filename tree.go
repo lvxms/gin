@@ -537,6 +537,7 @@ walk: // Outer loop for walking the tree
 
 					if value.handlers = n.handlers; value.handlers != nil {
 						value.fullPath = n.fullPath
+						value.ext = n.ext //mdw 扩展属性 2022.02.24 15:39
 						return
 					}
 					if len(n.children) == 1 {

@@ -235,8 +235,16 @@ func (c *Context) Error(err error) *Error {
 		panic("err is nil")
 	}
 
-	var parsedError *Error
-	ok := errors.As(err, &parsedError)
+	// var parsedError *Error
+	// ok := errors.As(err, &parsedError)
+	// if !ok {
+	// 	parsedError = &Error{
+	// 		Err:  err,
+	// 		Type: ErrorTypePrivate,
+	// 	}
+	// }
+
+	parsedError, ok := err.(*Error)
 	if !ok {
 		parsedError = &Error{
 			Err:  err,

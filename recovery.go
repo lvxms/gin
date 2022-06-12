@@ -6,7 +6,6 @@ package gin
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -60,10 +60,17 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) HandlerFunc {
 				// Check for a broken connection, as it is not really a
 				// condition that warrants a panic stack trace.
 				var brokenPipe bool
+				// if ne, ok := err.(*net.OpError); ok {
+				// 	var se *os.SyscallError
+				// 	if errors.As(ne, &se) {
+				// 		if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
+				// 			brokenPipe = true
+				// 		}
+				// 	}
+				// }
 				if ne, ok := err.(*net.OpError); ok {
-					var se *os.SyscallError
-					if errors.As(ne, &se) {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
+					if se, ok := ne.Err.(*os.SyscallError); ok {
+						if se.Err == syscall.EPIPE || se.Err == syscall.ECONNRESET {
 							brokenPipe = true
 						}
 					}

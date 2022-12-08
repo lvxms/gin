@@ -61,31 +61,12 @@ func (formMultipartBinding) Bind(req *http.Request, obj interface{}) error {
 	return validate(obj)
 }
 
-func Unwrap(err error) error {
-	u, ok := err.(interface {
-	  Unwrap() error
-	})
-	if !ok {
-	  return nil
-	}
-	return u.Unwrap()
-  }
 
-  func ErrIs(err, target error) bool {
-	if target == nil {
+
+func ErrIs(err, target error) bool {
+	if target == nil || err == nil{
 	   return err == target
 	}
  ​
-	isComparable := reflectlite.TypeOf(target).Comparable()
-	for {
-	   if isComparable && err == target {
-		  return true
-	   }
-	   if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
-		  return true
-	   }
-	   if err = Unwrap(err); err == nil {
-		  return false
-	   }
-	}
- }
+	return strings.Contains(err.Error(), target.Error())
+}

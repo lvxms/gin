@@ -1193,11 +1193,3 @@ func (c *Context) Value(key interface{}) interface{} {
 	}
 	return c.Request.Context().Value(key)
 }
-
-func ErrIs(err, target error) bool {
-	if target == nil || err == nil{
-	   return err == target
-	}
- ​
-	return strings.Contains(err.Error(), target.Error())
-}

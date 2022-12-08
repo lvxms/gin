@@ -6,6 +6,7 @@ package binding
 
 import (
 	"net/http"
+	"strings"
 )
 
 const defaultMemory = 32 << 20
@@ -23,7 +24,7 @@ func (formBinding) Bind(req *http.Request, obj interface{}) error {
 		return err
 	}
 	//if err := req.ParseMultipartForm(defaultMemory); err != nil && !errors.Is(err, http.ErrNotMultipart) {
-	if err := req.ParseMultipartForm(defaultMemory); err != nil && ErrIs(err, http.ErrNotMultipart) {
+	if err := req.ParseMultipartForm(defaultMemory); err != nil && !strings.Contains(err.Error(), http.ErrNotMultipart.Error()) {
 		return err
 	}
 	if err := mapForm(obj, req.Form); err != nil {
@@ -59,14 +60,4 @@ func (formMultipartBinding) Bind(req *http.Request, obj interface{}) error {
 	}
 
 	return validate(obj)
-}
-
-
-
-func ErrIs(err, target error) bool {
-	if target == nil || err == nil{
-	   return err == target
-	}
- ​
-	return strings.Contains(err.Error(), target.Error())
 }

@@ -23,7 +23,7 @@ func (formBinding) Bind(req *http.Request, obj interface{}) error {
 		return err
 	}
 	//if err := req.ParseMultipartForm(defaultMemory); err != nil && !errors.Is(err, http.ErrNotMultipart) {
-	if err := req.ParseMultipartForm(defaultMemory); err != nil && err != http.ErrNotMultipart {
+	if err := req.ParseMultipartForm(defaultMemory); err != nil && ErrIs(err, http.ErrNotMultipart) {
 		return err
 	}
 	if err := mapForm(obj, req.Form); err != nil {

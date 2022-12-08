@@ -539,7 +539,8 @@ func (c *Context) initFormCache() {
 		c.formCache = make(url.Values)
 		req := c.Request
 		if err := req.ParseMultipartForm(c.engine.MaxMultipartMemory); err != nil {
-			if !errors.Is(err, http.ErrNotMultipart) {
+			//if !errors.Is(err, http.ErrNotMultipart) {
+			if !ErrIs(err, http.ErrNotMultipart) {
 				debugPrint("error on parse multipart form array: %v", err)
 			}
 		}
@@ -1192,3 +1193,32 @@ func (c *Context) Value(key interface{}) interface{} {
 	}
 	return c.Request.Context().Value(key)
 }
+
+func Unwrap(err error) error {
+	u, ok := err.(interface {
+	  Unwrap() error
+	})
+	if !ok {
+	  return nil
+	}
+	return u.Unwrap()
+  }
+
+  func ErrIs(err, target error) bool {
+	if target == nil {
+	   return err == target
+	}
+ ​
+	isComparable := reflectlite.TypeOf(target).Comparable()
+	for {
+	   if isComparable && err == target {
+		  return true
+	   }
+	   if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+		  return true
+	   }
+	   if err = Unwrap(err); err == nil {
+		  return false
+	   }
+	}
+ }

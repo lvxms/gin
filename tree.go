@@ -190,7 +190,13 @@ walk:
 			n.handlers = nil
 			n.wildChild = false
 			n.fullPath = fullPath[:parentFullPathIndex+i]
-			n.ext = nil //mdw扩展属性 2022.02.18 17:17
+			//n.ext = nil //mdw扩展属性 2022.02.18 17:17
+
+			/*--------------------------------------------------------------------------------
+			//添加 /demo/userinfo
+			//再加 /demo/user 时，ctx.GetExt 取不到值Bug
+			---------------------------------------------------------------------------------*/
+			n.ext = ext //mdw扩展属性 2022.12.17 22:38
 		}
 
 		// Make new node a child of this node

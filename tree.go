@@ -417,6 +417,7 @@ func (n *node) insertChild(path string, fullPath string, ext interface{}, handle
 			handlers: handlers,
 			priority: 1,
 			fullPath: fullPath,
+			ext:      ext, //mdw 路径通配功能 /demo/api/*abc  2022.12.20 19:20
 		}
 		n.children = []*node{child}
 
@@ -653,6 +654,7 @@ walk: // Outer loop for walking the tree
 
 					value.handlers = n.handlers
 					value.fullPath = n.fullPath
+					value.ext = n.ext //mdw 通配路径功能 /abc/*name 格式   2022.12.20 19:10
 					return
 
 				default:

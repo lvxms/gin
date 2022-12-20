@@ -705,6 +705,7 @@ func NewUrlEntry(url, ext string) *UrlEntry {
 	return &UrlEntry{Url: url, Ext: ext, ResStr: fmt.Sprintf("Url: %s ... Ext: %s", url, ext)}
 }
 
+//go test -test.run TestWildPath
 func TestWildPath(t *testing.T) {
 
 	ts := setupGinSvr(
@@ -714,9 +715,9 @@ func TestWildPath(t *testing.T) {
 		func(router *Engine) {
 			router.MyHandle("GET", "/demo/hello", "hello", MyGinRouterHandler)
 			router.MyHandle("GET", "/demo/upload", "upload", MyGinRouterHandler)
-			router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
+			//router.MyHandle("GET", "/demo/user/*abc", "user", MyGinRouterHandler)
 			router.MyHandle("GET", "/demo/userinfo/:usercode/:username/:deptcode", "userinfo", MyGinRouterHandler)
-			//router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
+			router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
 			router.MyHandle("GET", "/demo/userlist", "userlist", MyGinRouterHandler)
 			//router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
 		},
@@ -725,8 +726,8 @@ func TestWildPath(t *testing.T) {
 
 	urls := make([]*UrlEntry, 0)
 	urls = append(urls, NewUrlEntry("/demo/hello", "hello"))
-	urls = append(urls, NewUrlEntry("/demo/user/abc", "user"))
-	urls = append(urls, NewUrlEntry("/demo/user/efg", "user"))
+	urls = append(urls, NewUrlEntry("/demo/user/abc/ts", "user"))
+	urls = append(urls, NewUrlEntry("/demo/user/efg/js", "user"))
 	urls = append(urls, NewUrlEntry("/demo/userlist", "userlist"))
 
 	//url := urls[1]

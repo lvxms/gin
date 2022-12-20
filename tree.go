@@ -6,6 +6,7 @@ package gin
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"strings"
 	"unicode"
@@ -122,7 +123,8 @@ type node struct {
 	handlers  HandlersChain
 	fullPath  string
 
-	ext interface{} //mdw扩展属性
+	ext     interface{} //mdw扩展属性
+	wildAll bool        //mdw 增加路径通配符功能 2022.12.20 15:30
 }
 
 // Increments priority of the given child and reorders if necessary
@@ -168,6 +170,7 @@ walk:
 		// Find the longest common prefix.
 		// This also implies that the common prefix contains no ':' or '*'
 		// since the existing key can't contain those chars.
+		//查找最长的公共前缀。这也意味着公共前缀不包含“：”或“*”，因为现有键不能包含这些字符。
 		i := longestCommonPrefix(path, n.path)
 
 		// Split edge
@@ -180,7 +183,8 @@ walk:
 				handlers:  n.handlers,
 				priority:  n.priority - 1,
 				fullPath:  n.fullPath,
-				ext:       n.ext, //mdw扩展属性 2022.02.18 17:17
+				ext:       n.ext,     //mdw扩展属性 2022.02.18 17:17
+				wildAll:   n.wildAll, //mdw 路径通配符功能 2022.12.20 15:30
 			}
 
 			n.children = []*node{&child}
@@ -190,13 +194,8 @@ walk:
 			n.handlers = nil
 			n.wildChild = false
 			n.fullPath = fullPath[:parentFullPathIndex+i]
-			//n.ext = nil //mdw扩展属性 2022.02.18 17:17
-
-			/*--------------------------------------------------------------------------------
-			//添加 /demo/userinfo
-			//再加 /demo/user 时，ctx.GetExt 取不到值Bug
-			---------------------------------------------------------------------------------*/
-			n.ext = ext //mdw扩展属性 2022.12.17 22:38
+			n.ext = nil       //mdw扩展属性 2022.02.18 17:17
+			n.wildAll = false //mdw 路径通配符功能　2022.12.20 15:30
 		}
 
 		// Make new node a child of this node
@@ -234,19 +233,24 @@ walk:
 				n = child
 			} else if n.wildChild {
 				// inserting a wildcard node, need to check if it conflicts with the existing wildcard
+				//插入通配符节点，需要检查它是否与现有通配符冲突
 				n = n.children[len(n.children)-1]
 				n.priority++
 
 				// Check if the wildcard matches
+				// 检查通配符是否匹配
 				if len(path) >= len(n.path) && n.path == path[:len(n.path)] &&
 					// Adding a child to a catchAll is not possible
+					// 无法将子项添加到catchAll
 					n.nType != catchAll &&
 					// Check for longer wildcard, e.g. :name and :names
+					// 检查较长的通配符
 					(len(n.path) >= len(path) || path[len(n.path)] == '/') {
 					continue walk
 				}
 
 				// Wildcard conflict
+				// 通配符冲突
 				pathSeg := path
 				if n.nType != catchAll {
 					pathSeg = strings.SplitN(pathSeg, "/", 2)[0]
@@ -269,6 +273,12 @@ walk:
 		}
 		n.handlers = handlers
 		n.fullPath = fullPath
+		/*--------------------------------------------------------------------------------
+		//mdw 添加路径Bug  2022.12.20 15:30
+		//添加 /demo/userinfo
+		//再加 /demo/user 时，ctx.GetExt 取不到值Bug
+		---------------------------------------------------------------------------------*/
+		n.ext = ext
 		return
 	}
 }
@@ -307,6 +317,16 @@ func (n *node) insertChild(path string, fullPath string, ext interface{}, handle
 			break
 		}
 
+		//mdw 路径通配符功能 2022.12.20 15:30
+		if strings.HasSuffix(path, "/**") {
+			n.path = path
+			n.ext = ext
+			n.wildAll = true
+			n.fullPath = fullPath
+			n.handlers = handlers
+			return
+		}
+
 		// The wildcard name must not contain ':' and '*'
 		if !valid {
 			panic("only one wildcard per path segment is allowed, has: '" +
@@ -337,6 +357,7 @@ func (n *node) insertChild(path string, fullPath string, ext interface{}, handle
 
 			// if the path doesn't end with the wildcard, then there
 			// will be another non-wildcard subpath starting with '/'
+			// 如果路径不以通配符结尾，则会有另一个以“/”开头的非通配符子路径
 			if len(wildcard) < len(path) {
 				path = path[len(wildcard):]
 
@@ -403,6 +424,7 @@ func (n *node) insertChild(path string, fullPath string, ext interface{}, handle
 	}
 
 	// If no wildcard was found, simply insert the path and handle
+	// 如果未找到通配符，只需插入路径和句柄
 	n.path = path
 	n.handlers = handlers
 	n.fullPath = fullPath
@@ -424,6 +446,47 @@ type skippedNode struct {
 	paramsCount int16
 }
 
+func (n *node) Info(level int) {
+	infoStr := ""
+
+	//格式化空格
+	for i := 0; i < level; i++ {
+		infoStr += ".... "
+	}
+
+	infoStr += n.path
+
+	wildAllStr := ""
+	if n.wildAll {
+		wildAllStr = "true"
+	} else {
+		wildAllStr = "false"
+	}
+
+	// ext := ""
+	// if n.ext == nil {
+	// 	ext = "nil"
+	// } else {
+	// 	ext = n.ext.(string)
+	// 	if ext == "" {
+	// 		ext = "nill"
+	// 	}
+	// }
+
+	// infoStr += "   - (wildAll: " + wildAllStr + " ... ext: " + ext + ")"
+	infoStr += "   - (wildAll: " + wildAllStr + ")"
+
+	fmt.Printf("%v\n", infoStr)
+
+	if n.children == nil {
+		return
+	}
+
+	for _, child := range n.children {
+		child.Info(level + 1)
+	}
+}
+
 // Returns the handle registered with the given path (key). The values of
 // wildcards are saved to a map.
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
@@ -439,10 +502,18 @@ walk: // Outer loop for walking the tree
 			if path[:len(prefix)] == prefix {
 				path = path[len(prefix):]
 
-				// Try all the non-wildcard children first by matching the indices
+				// Try all the non-wildcard children first by matching the indices	//通过匹配索引，首先尝试所有非通配符子项
 				idxc := path[0]
 				for i, c := range []byte(n.indices) {
 					if c == idxc {
+						if n.wildAll {
+							value.handlers = n.handlers
+							value.ext = n.ext
+							value.params = nil
+							value.fullPath = n.fullPath
+							return
+						}
+
 						//  strings.HasPrefix(n.children[len(n.children)-1].path, ":") == n.wildChild
 						if n.wildChild {
 							index := len(*skippedNodes)
@@ -457,6 +528,8 @@ walk: // Outer loop for walking the tree
 									children:  n.children,
 									handlers:  n.handlers,
 									fullPath:  n.fullPath,
+									ext:       n.ext,
+									wildAll:   n.wildAll,
 								},
 								paramsCount: globalParamsCount,
 							}
@@ -470,6 +543,7 @@ walk: // Outer loop for walking the tree
 				if !n.wildChild {
 					// If the path at the end of the loop is not equal to '/' and the current node has no child nodes
 					// the current node needs to roll back to last vaild skippedNode
+					// 如果循环末尾的路径不等于“/”，并且当前节点没有子节点，则当前节点需要回滚到最后一个有效的skippedNode
 					if path != "/" {
 						for l := len(*skippedNodes); l > 0; {
 							skippedNode := (*skippedNodes)[l-1]
@@ -489,11 +563,13 @@ walk: // Outer loop for walking the tree
 					// Nothing found.
 					// We can recommend to redirect to the same URL without a
 					// trailing slash if a leaf exists for that path.
+					//未找到任何内容。如果该路径存在叶，我们可以建议重定向到相同的URL，而不带斜杠
 					value.tsr = path == "/" && n.handlers != nil
 					return
 				}
 
 				// Handle wildcard child, which is always at the end of the array
+				//句柄通配符子级，它始终位于数组的末尾
 				n = n.children[len(n.children)-1]
 				globalParamsCount++
 
@@ -585,7 +661,8 @@ walk: // Outer loop for walking the tree
 			}
 		}
 
-		if path == prefix {
+		//if path == prefix {
+		if path == prefix || prefix == "/**" { //mdw 路径通配符功能 2022.12.20 15:30
 			// If the current path does not equal '/' and the node does not have a registered handle and the most recently matched node has a child node
 			// the current node needs to roll back to last vaild skippedNode
 			if n.handlers == nil && path != "/" {

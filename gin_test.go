@@ -657,5 +657,96 @@ func assertRoutePresent(t *testing.T, gotRoutes RoutesInfo, wantRoute RouteInfo)
 	t.Errorf("route not found: %v", wantRoute)
 }
 
+func setupGinSvr(t *testing.T, mode string, tls bool, loadRouter func(*Engine)) *httptest.Server {
+	SetMode(mode)
+	defer SetMode(TestMode)
+
+	var router *Engine
+	captureOutput(t, func() {
+		router = New()
+
+		if loadRouter != nil {
+			loadRouter(router)
+		}
+	})
+
+	var ts *httptest.Server
+
+	if tls {
+		ts = httptest.NewTLSServer(router)
+	} else {
+		ts = httptest.NewServer(router)
+	}
+
+	return ts
+}
+
+func MyGinRouterHandler(ctx *Context) {
+	ext, _ := ctx.GetExt()
+	if ext == nil {
+		ctx.String(200, "Ext == nil")
+		return
+	}
+
+	extStr, _ := ext.(string)
+	infoStr := fmt.Sprintf("Url: %s ... Ext: %s", ctx.Request.URL.Path, extStr)
+
+	ctx.String(200, infoStr)
+	return
+}
+
+type UrlEntry struct {
+	Url    string
+	Ext    string
+	ResStr string
+}
+
+func NewUrlEntry(url, ext string) *UrlEntry {
+	return &UrlEntry{Url: url, Ext: ext, ResStr: fmt.Sprintf("Url: %s ... Ext: %s", url, ext)}
+}
+
+func TestWildPath(t *testing.T) {
+
+	ts := setupGinSvr(
+		t,
+		TestMode,
+		false,
+		func(router *Engine) {
+			router.MyHandle("GET", "/demo/hello", "hello", MyGinRouterHandler)
+			router.MyHandle("GET", "/demo/upload", "upload", MyGinRouterHandler)
+			router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
+			router.MyHandle("GET", "/demo/userinfo/:usercode/:username/:deptcode", "userinfo", MyGinRouterHandler)
+			//router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
+			router.MyHandle("GET", "/demo/userlist", "userlist", MyGinRouterHandler)
+			//router.MyHandle("GET", "/demo/user/**", "user", MyGinRouterHandler)
+		},
+	)
+	defer ts.Close()
+
+	urls := make([]*UrlEntry, 0)
+	urls = append(urls, NewUrlEntry("/demo/hello", "hello"))
+	urls = append(urls, NewUrlEntry("/demo/user/abc", "user"))
+	urls = append(urls, NewUrlEntry("/demo/user/efg", "user"))
+	urls = append(urls, NewUrlEntry("/demo/userlist", "userlist"))
+
+	//url := urls[1]
+
+	for _, url := range urls {
+		urlStr := fmt.Sprintf("%s%s", ts.URL, url.Url)
+		fmt.Println(urlStr)
+
+		//time.Sleep(time.Second * 60)
+
+		res, err := http.Get(urlStr)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		resp, _ := ioutil.ReadAll(res.Body)
+
+		assert.Equal(t, url.ResStr, string(resp))
+	}
+}
+
 func handlerTest1(c *Context) {}
 func handlerTest2(c *Context) {}

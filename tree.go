@@ -664,7 +664,8 @@ walk: // Outer loop for walking the tree
 		}
 
 		//if path == prefix {
-		if path == prefix || prefix == "/**" { //mdw 路径通配符功能 2022.12.20 15:30
+		//if path == prefix || prefix == "/**" { //mdw 路径通配符功能 2022.12.20 15:30
+		if path == prefix || strings.Contains(prefix, "/**") { //mdw 路径通配符功能 2023.01.01 23:00 修复Bug
 			// If the current path does not equal '/' and the node does not have a registered handle and the most recently matched node has a child node
 			// the current node needs to roll back to last vaild skippedNode
 			if n.handlers == nil && path != "/" {
